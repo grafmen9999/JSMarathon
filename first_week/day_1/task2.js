@@ -41,7 +41,6 @@ const task2 = () => {
             res += ` (${phone.charAt(i)}`;
             break;
           }
-
           case 5 - q: {
             res += `) ${phone.charAt(i)}`;
             break;
@@ -53,8 +52,7 @@ const task2 = () => {
             break;
           }
 
-          default:
-            res += phone.charAt(i);
+          default: res += phone.charAt(i);
         }
       }
 
