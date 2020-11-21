@@ -2,11 +2,14 @@ const SPELL_THUNDER_MAX_DAMAGE = 30;
 const SPELL_THUNDER_MAX_COOLDOWN = 3;
 const SPELL_THUNDER_NAME = 'thunder';
 
+const SPELL_TEST_NAME = 'test spell';
+const SPELL_TEST_MAX_DAMAGE = 15;
+const SPELL_TEST_MAX_COOLDOWN = 2;
+
 const MAX_DAMAGE = 20;
 const MAX_HP = 100;
 
 const $btn = document.getElementById('btn-kick');
-const $btnSpell = document.getElementById('btn-spell');
 const logs = document.getElementById('logs');
 
 let countMove = 0;
@@ -19,8 +22,28 @@ const actionWithAbility = function (callback) {
 
 const enabledSpellBtn = function(enabled = true) {
   return spell => {
-    spell.$btn.disabled = enabled;
+    spell.$btn().disabled = enabled;
   };
+}
+
+function createButtonSpell() {
+  const btn = document.createElement('button');
+
+  btn.appendChild(document.createTextNode(`Cast ${this.name} spell`));
+  btn.classList.add('button');
+  btn.id = `btn-spell-${this.name}`;
+
+  return btn;
+}
+
+function getSpellBtn(type) {
+  if (this.$__btn === null) {
+    this.$__btn = createButtonSpell.call(this);
+    console.log(this)
+    document.getElementsByClassName(`control-${type}`).item(0).appendChild(this.$__btn);
+  }
+
+  return this.$__btn;
 }
 
 const character = {
@@ -32,7 +55,22 @@ const character = {
     [SPELL_THUNDER_NAME]: {
       getDamage: () => (random(SPELL_THUNDER_MAX_DAMAGE)),
       cooldown: 0,
-      $btn: $btnSpell, // just for example
+      maxCooldown: SPELL_THUNDER_MAX_COOLDOWN,
+      $__btn: null,
+      $btn: function() {
+        return getSpellBtn.call(this, 'character');
+      },
+      name: SPELL_THUNDER_NAME,
+    },
+    [SPELL_TEST_NAME]: {
+      getDamage: () => (random(SPELL_TEST_MAX_DAMAGE)),
+      cooldown: 0,
+      maxCooldown: SPELL_TEST_MAX_COOLDOWN,
+      $__btn: null,
+      $btn: function() {
+        return getSpellBtn.call(this, 'character');
+      },
+      name: SPELL_TEST_NAME,
     }
   },
   actionWithAbility,
@@ -113,8 +151,8 @@ const castSpell = (character, enemy, nameSpell) => {
     :
     `Покемон [${character.name}] использовал [${nameSpell}] на покемона [${enemy.name}] нанеся {${damage}} урона.\n`;
 
-  character.ability[nameSpell].cooldown = SPELL_THUNDER_MAX_COOLDOWN;
-  character.ability[nameSpell].$btn.disabled = true;
+  character.ability[nameSpell].cooldown = character.ability[nameSpell].maxCooldown;
+  character.ability[nameSpell].$btn().disabled = true;
 
   infoLog(message, '', 'casting spell');
 }
@@ -126,7 +164,7 @@ const cooldownSpell = (person) => {
     }
 
     if (spell.cooldown === 0) {
-      spell.$btn.disabled = false;
+      spell.$btn().disabled = false;
     }
   });
 }
@@ -150,12 +188,12 @@ const changeHP = (person, count) => {
   if ((person.damageHP -= count) <= count) {
     person.damageHP = 0;
 
-    status = true; // pokemon not alive
+    status = true;
   }
 
   renderHP(person);
 
-  return status; // pokemon is alive
+  return status;
 }
 
 const random = (num) => {
@@ -167,7 +205,7 @@ const stopGame = () => {
   character.actionWithAbility(enabledSpellBtn(true));
   enemy.actionWithAbility(enabledSpellBtn(true));
 }
-
+ // pokemon is alive
 const setHPToDefault = (person, _default = null) => {
   if (_default !== null) {
     person.defaultHP = _default; // set new default value
@@ -183,18 +221,25 @@ const startGame = () => {
   renderHP(character);
   renderHP(enemy);
 
+  initSpellAction(character);
+  initSpellAction(enemy);
+
   countMove = 0;
 }
 
 const initGame = () => {
   console.log('Start Game!');
 
-  const thunderSpell = castSpell.bind(this, character, enemy, SPELL_THUNDER_NAME);
-
   $btn.addEventListener('click', kick);
-  $btnSpell.addEventListener('click', thunderSpell)
 
   startGame();
+}
+
+const initSpellAction = (person) => {
+  person.actionWithAbility((spell) => {
+    const spellAction = castSpell.bind(this, character, enemy, spell.name);
+    spell.$btn().addEventListener('click', spellAction)
+  });
 }
 
 initGame();
