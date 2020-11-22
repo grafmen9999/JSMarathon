@@ -205,7 +205,7 @@ const stopGame = () => {
   character.actionWithAbility(enabledSpellBtn(true));
   enemy.actionWithAbility(enabledSpellBtn(true));
 }
- // pokemon is alive
+
 const setHPToDefault = (person, _default = null) => {
   if (_default !== null) {
     person.defaultHP = _default; // set new default value
@@ -231,7 +231,6 @@ const initGame = () => {
   console.log('Start Game!');
 
   $btn.addEventListener('click', kick);
-
   startGame();
 }
 
