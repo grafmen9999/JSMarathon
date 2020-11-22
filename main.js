@@ -2,15 +2,17 @@ const SPELL_THUNDER_MAX_DAMAGE = 30;
 const SPELL_THUNDER_MAX_COOLDOWN = 3;
 const SPELL_THUNDER_NAME = 'thunder';
 
+const SPELL_TEST_NAME = 'test spell';
+const SPELL_TEST_MAX_DAMAGE = 15;
+const SPELL_TEST_MAX_COOLDOWN = 2;
+
 const MAX_DAMAGE = 20;
 const MAX_HP = 100;
 
 const $btn = document.getElementById('btn-kick');
-const $btnSpell = document.getElementById('btn-spell');
-const informationBlock = document.getElementById('information-log');
+const logs = document.getElementById('logs');
 
 let countMove = 0;
-let handlerInformationBlock = null;
 
 const actionWithAbility = function (callback) {
   for (let spell in this.ability) {
@@ -20,8 +22,28 @@ const actionWithAbility = function (callback) {
 
 const enabledSpellBtn = function(enabled = true) {
   return spell => {
-    spell.$btn.disabled = enabled;
+    spell.$btn().disabled = enabled;
   };
+}
+
+function createButtonSpell() {
+  const btn = document.createElement('button');
+
+  btn.appendChild(document.createTextNode(`Cast ${this.name} spell`));
+  btn.classList.add('button');
+  btn.id = `btn-spell-${this.name}`;
+
+  return btn;
+}
+
+function getSpellBtn(type) {
+  if (this.$__btn === null) {
+    this.$__btn = createButtonSpell.call(this);
+    console.log(this)
+    document.getElementsByClassName(`control-${type}`).item(0).appendChild(this.$__btn);
+  }
+
+  return this.$__btn;
 }
 
 const character = {
@@ -33,7 +55,22 @@ const character = {
     [SPELL_THUNDER_NAME]: {
       getDamage: () => (random(SPELL_THUNDER_MAX_DAMAGE)),
       cooldown: 0,
-      $btn: $btnSpell, // just for example
+      maxCooldown: SPELL_THUNDER_MAX_COOLDOWN,
+      $__btn: null,
+      $btn: function() {
+        return getSpellBtn.call(this, 'character');
+      },
+      name: SPELL_THUNDER_NAME,
+    },
+    [SPELL_TEST_NAME]: {
+      getDamage: () => (random(SPELL_TEST_MAX_DAMAGE)),
+      cooldown: 0,
+      maxCooldown: SPELL_TEST_MAX_COOLDOWN,
+      $__btn: null,
+      $btn: function() {
+        return getSpellBtn.call(this, 'character');
+      },
+      name: SPELL_TEST_NAME,
     }
   },
   actionWithAbility,
@@ -62,17 +99,17 @@ const kick = () => {
 };
 
 const move = () => {
-  let textLog = `Ход#${++countMove}\n`;
+  const countMoveText = `Ход#${++countMove}\n`;
 
-  const res1 = hit(character, enemy);
-  const res2 = hit(enemy, character);
+  const characterData = hit(character, enemy);
+  const enemyData = hit(enemy, character);
 
-  textLog += res1.message;
-  textLog += res2.message;
+  const characterMessage = characterData.message;
+  const enemyMessage = enemyData.message;
 
-  infoLog(textLog);
+  infoLog(characterMessage, enemyMessage, countMoveText);
 
-  if (res1.die || res2.die) {
+  if (characterData.die || enemyData.die) {
     stopGame();
   }
 }
@@ -87,22 +124,15 @@ const hit = (character, enemy) => {
   return { message: generateTextLog(character, enemy, damage) + '\n', die: false };
 }
 
-const infoLog = (message) => {
-  console.log(message);
-
-  if (handlerInformationBlock !== null) {
-    clearTimeout(handlerInformationBlock);
-    handlerInformationBlock = null;
-  }
-
-  informationBlock.innerText = message;
-
-  handlerInformationBlock = setTimeout(() => {
-    informationBlock.innerText = "";
-  }, 10000)
-  // можем выводить это сообщение куда угодно и как хотим
-  // лучше не вызывать тут алерты :D
+const infoLog = (characterMessage, enemyMessage, countMoveMessage) => {
+  logs.innerHTML += `<div class="row">
+${wrapperLog(characterMessage)}${wrapperLog(countMoveMessage)}${wrapperLog(enemyMessage)}
+</div>`;
 }
+
+const wrapperLog = (text) => (
+  `<div class="column">${text}</div>`
+);
 
 const generateTextLog = (person1, person2, damage) => {
   return `Покемон [${person1.name}] ударил покемона [${person2.name}] и нанёс ему: {${damage}} урона.`;
@@ -116,15 +146,15 @@ const decrementCooldown = () => {
 const castSpell = (character, enemy, nameSpell) => {
   const damage = character.ability[nameSpell].getDamage();
 
-  let message = changeHP(enemy, damage) ?
+  const message = changeHP(enemy, damage) ?
     `Покемон [${character.name}] использовал [${nameSpell}] на покемона [${enemy.name}] нанеся {${damage}} урона.\nПокемон [${enemy.name}] после такого погиб! Помним, любим, скорбим!\n`
     :
     `Покемон [${character.name}] использовал [${nameSpell}] на покемона [${enemy.name}] нанеся {${damage}} урона.\n`;
 
-  character.ability[nameSpell].cooldown = SPELL_THUNDER_MAX_COOLDOWN;
-  character.ability[nameSpell].$btn.disabled = true;
+  character.ability[nameSpell].cooldown = character.ability[nameSpell].maxCooldown;
+  character.ability[nameSpell].$btn().disabled = true;
 
-  infoLog(message)
+  infoLog(message, '', 'casting spell');
 }
 
 const cooldownSpell = (person) => {
@@ -134,7 +164,7 @@ const cooldownSpell = (person) => {
     }
 
     if (spell.cooldown === 0) {
-      spell.$btn.disabled = false;
+      spell.$btn().disabled = false;
     }
   });
 }
@@ -144,7 +174,7 @@ const renderHPLife = (person) => {
 }
 
 const renderProgressbarHP = (person) => {
-  person.elProgressbar.style.width = `${person.damageHP}%`;
+  person.elProgressbar.style.width = `${(person.damageHP / person.defaultHP) * 100}%`;
 }
 
 const renderHP = (person) => {
@@ -158,12 +188,12 @@ const changeHP = (person, count) => {
   if ((person.damageHP -= count) <= count) {
     person.damageHP = 0;
 
-    status = true; // pokemon not alive
+    status = true;
   }
 
   renderHP(person);
 
-  return status; // pokemon is alive
+  return status;
 }
 
 const random = (num) => {
@@ -191,18 +221,24 @@ const startGame = () => {
   renderHP(character);
   renderHP(enemy);
 
+  initSpellAction(character);
+  initSpellAction(enemy);
+
   countMove = 0;
 }
 
 const initGame = () => {
   console.log('Start Game!');
 
-  const thunderSpell = castSpell.bind(this, character, enemy, SPELL_THUNDER_NAME);
-
   $btn.addEventListener('click', kick);
-  $btnSpell.addEventListener('click', thunderSpell)
-
   startGame();
+}
+
+const initSpellAction = (person) => {
+  person.actionWithAbility((spell) => {
+    const spellAction = castSpell.bind(this, character, enemy, spell.name);
+    spell.$btn().addEventListener('click', spellAction)
+  });
 }
 
 initGame();

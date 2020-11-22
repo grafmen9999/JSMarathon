@@ -51,6 +51,28 @@ body {
     margin: 30px auto;
 }
 
+#logs {
+    max-height: 150px;
+    overflow: auto;
+}
+
+#logs .row {
+    max-width: 1200px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 30px auto;
+}
+
+#logs .row .column {
+    width: 350px;
+    text-align: center;
+}
+
+#logs .row .column:nth-child(2) {
+    width: 100px;
+}
+
 .arrow {
     position: absolute;
     left: 0;
